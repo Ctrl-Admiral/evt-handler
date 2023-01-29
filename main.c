@@ -26,11 +26,6 @@ int main(int argc, char **argv)
     int numArgc = 3;
     bool baseMode = false;
 
-    printf("size of DWORD_UNDEF: %zu\n", sizeof(UNDEF_DWORD));
-    printf("size of DWORD: %zu\n", sizeof(DWORD));
-    printf("size of WORD_UNDEF: %zu\n", sizeof(UNDEF_WORD));
-    printf("size of WORD: %zu\n", sizeof(WORD));
-
     if (argc > numArgc)
     {
         printf("Please specify filename and correct mode of output.\n");
@@ -58,6 +53,11 @@ int main(int argc, char **argv)
     }
 
     file = fopen(argv[1], "rb");
+    if (file == NULL)
+    {
+        fprintf(stderr, "Failure opening of file!\n");
+        goto out0;
+    }
     if (fseek(file, 0, SEEK_END))
     {
         fprintf(stderr, "Failure seek end of file!\n");
@@ -75,12 +75,12 @@ int main(int argc, char **argv)
     if (!fread(startFile, fileSize, 1, file))
     {
         fprintf(stderr, "Failure reading file!\n");
-        goto out0;
+        goto out1;
     }
     if (fclose(file))
     {
         fprintf(stderr, "Failure closing file\n");
-        goto out0;
+        goto out1;
     }
 
 
