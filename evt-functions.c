@@ -57,7 +57,7 @@ CBYTE* searchSignatureWithinBoundaries(CBYTE* start, CBYTE* end, CBYTE* signatur
 /* ====================PARSING RECORD=======================*/
 /* =========================================================*/
 
-Status parseDWordElem(DWORD* elem, BYTE** cur, CBYTE* end)
+Status parseDWordElem(DWORD* elem, CBYTE** cur, CBYTE* end)
 {
     if (*cur + sizeof(*elem) > end)
         return StatusStop;
@@ -66,7 +66,7 @@ Status parseDWordElem(DWORD* elem, BYTE** cur, CBYTE* end)
     return StatusOK;
 }
 
-Status parseWordElem(WORD* elem, BYTE** cur, CBYTE* end)
+Status parseWordElem(WORD* elem, CBYTE** cur, CBYTE* end)
 {
     if (*cur + sizeof(*elem) > end)
         return StatusStop;
@@ -77,7 +77,7 @@ Status parseWordElem(WORD* elem, BYTE** cur, CBYTE* end)
 
 Status parseHeader(CBYTE* startHeader, ParsedHeader* header)
 {
-    BYTE* cur = (BYTE*)startHeader;
+    CBYTE* cur = startHeader;
     CBYTE* endHeader = startHeader + HEADER_SIZE;
     if (parseDWordElem(&header->headerSize, &cur, endHeader) == StatusStop)
         return StatusOK;
@@ -115,7 +115,7 @@ Status parseHeader(CBYTE* startHeader, ParsedHeader* header)
 
 Status parseFooter(CBYTE* startFooter, ParsedFooter* footer)
 {
-    BYTE* cur = (BYTE*)startFooter;
+    CBYTE* cur = startFooter;
     CBYTE* endFooter = startFooter + FOOTER_SIZE;
     if (parseDWordElem(&footer->size, &cur, endFooter) == StatusStop)
         return StatusOK;
@@ -149,7 +149,7 @@ Status parseFooter(CBYTE* startFooter, ParsedFooter* footer)
 
 Status parseRecord(CBYTE* startRecord, size_t recordSize, ParsedRecord* record)
 {
-    BYTE* cur = (BYTE*)startRecord;
+    CBYTE* cur = startRecord;
     CBYTE* endRecord = startRecord + recordSize;
     if (parseDWordElem(&record->recordHeader.length, &cur, endRecord) == StatusStop)
         return StatusOK;
@@ -213,10 +213,7 @@ bool checkHasFooter(CBYTE* buffer, size_t bufferSize, BYTE** startFooter)
 {
     *startFooter = (BYTE*)searchSignature(buffer, bufferSize, SIGNATURE_FOOTER_START, sizeof(SIGNATURE_FOOTER_START));
     if (startFooter != NULL)
-    {
-        if (searchSignature(*startFooter, bufferSize - (*startFooter - buffer), SIGNATURE_FOOTER_END, sizeof(SIGNATURE_FOOTER_END)) != NULL)
-            return true;
-    }
+        return (searchSignature(*startFooter, bufferSize - (*startFooter - buffer), SIGNATURE_FOOTER_END, sizeof(SIGNATURE_FOOTER_END)) != NULL);
     return false;
 }
 
@@ -353,7 +350,7 @@ start:
 
     if (curSignature == NULL)
     {
-        printf("Signature not found. Search is over.\n");
+        printf("Carving record: Signature not found. Search is over.\n");
         return StatusError;
     }
 
@@ -422,12 +419,6 @@ Status parseJournal(CBYTE* startEventLog, size_t eventLogSize,
     size_t curRecordSize = 0;
     bool isWrap = false;
     Status status = StatusOK;
-    RecordsArray allRecords;
-
-    status = initEmptyArray(&allRecords);
-    if (status != StatusOK)
-        goto out0;
-
 
     startRecords = startEventLog;
 
@@ -459,55 +450,47 @@ Status parseJournal(CBYTE* startEventLog, size_t eventLogSize,
     {
         status = carveRecord(startRecords, endRecords, &curStart, &curRecord, &curRecordSize, &isWrap);
         if(status != StatusOK)
-            goto out1;
+            return status;
         if (!isWrap)
         {
             ParsedRecord curPRecord = initParsedRecord();
             status = parseRecord(curRecord, curRecordSize, &curPRecord);
             if (status != StatusOK)
-                goto out1;
+                return status;
 
-            restoreHiddenRecords(&curPRecord, &allRecords);
+            restoreHiddenRecords(&curPRecord, &eventLog->recordsArray);
         }
         else /* обработка закольцованной записи */
         {
             BYTE* wrappedRecord = malloc(curRecordSize);
+            if (wrappedRecord == NULL)
+                return StatusError;
             size_t sizeTillEnd = endRecords - curRecord;
             memcpy(wrappedRecord, curRecord, sizeTillEnd);
             memcpy(wrappedRecord + sizeTillEnd, startRecords, curRecordSize - sizeTillEnd);
             ParsedRecord curPRecord = initParsedRecord();
             status = parseRecord(wrappedRecord, curRecordSize, &curPRecord);
-            restoreHiddenRecords(&curPRecord, &allRecords);
+            restoreHiddenRecords(&curPRecord, &eventLog->recordsArray);
             free(wrappedRecord);
             if (status != StatusOK)
-                goto out1;
+                return status;
         }
     }
 
-    ParsedHeader header = initParsedHeader();
+
     if(hasHeader)
     {
-        status = parseHeader(startEventLog, &header);
+        status = parseHeader(startEventLog, &eventLog->header);
         if (status != StatusOK)
-            goto out1;
+            return status;
     }
-    ParsedFooter footer = initParsedFooter();
+
     if(hasFooter)
     {
-        status = parseFooter(startFooter, &footer);
+        status = parseFooter(startFooter, &eventLog->footer);
         if (status != StatusOK)
-            goto out1;
+            return status;
     }
 
-
-    eventLog->hasHeader = hasHeader;
-    eventLog->hasFooter = hasFooter;
-    eventLog->header = header;
-    eventLog->footer = footer;
-    eventLog->recordsArray = allRecords;
-    goto out0;
-out1:
-    freeArray(&allRecords);
-out0:
     return status;
 }

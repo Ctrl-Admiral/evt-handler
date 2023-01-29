@@ -9,8 +9,8 @@
 #include <string.h>
 #include <time.h>
 
-#define BYTE unsigned char
-#define CBYTE const unsigned char
+#define BYTE int8_t
+#define CBYTE const int8_t
 #define WORD int16_t
 #define DWORD int32_t
 #define WCHAR wchar_t
@@ -83,7 +83,6 @@ typedef struct
 
 ParsedRecord initParsedRecord();
 void printParsedRecord(const ParsedRecord* record);
-
 
 /**
  * @brief Структура заголовка журнала. Содержит только элементы с данными

@@ -80,6 +80,14 @@ int main(int argc, char **argv)
     if (hasFooter && (startFooter != (startFile + fileSize - FOOTER_SIZE)))
         isFileWrapped = true;
 
+    eventLog.hasHeader = hasHeader;
+    eventLog.hasFooter = hasFooter;
+    eventLog.header = initParsedHeader();
+    eventLog.footer = initParsedFooter();
+    status = initEmptyArray(&eventLog.recordsArray);
+    if (status != StatusOK)
+        goto out0;
+
     status = parseJournal(startFile, fileSize, hasHeader, hasFooter, isFileWrapped, &eventLog);
     if (status != StatusOK)
     {

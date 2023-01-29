@@ -2,38 +2,38 @@
 
 Status initArray(RecordsArray *arr, size_t initialCapacity)
 {
-  arr->records = malloc(initialCapacity * sizeof(ParsedRecord));
-  if (arr == NULL)
-    return StatusCritical;
-  arr->recordsCount = 0;
-  arr->capacity = initialCapacity;
-  return StatusOK;
+    arr->records = malloc(initialCapacity * sizeof(ParsedRecord));
+    if (arr == NULL)
+        return StatusCritical;
+    arr->recordsCount = 0;
+    arr->capacity = initialCapacity;
+    return StatusOK;
 }
 
 Status initEmptyArray(RecordsArray *arr)
 {
-  return initArray(arr, 0);
+    return initArray(arr, 0);
 }
 
 Status insertArray(RecordsArray *arr, ParsedRecord element)
 {
-  if (arr->recordsCount == arr->capacity)
-  {
-    (arr->capacity == 0) ? (arr->capacity = 1) : (arr->capacity *= 2);
-    ParsedRecord* temp = realloc(arr->records, arr->capacity * sizeof(ParsedRecord));
-    if (temp == NULL)
-      return StatusCritical; /* do not forget to free the original pointer in the caller */
-    arr->records = temp;
-  }
-  arr->records[arr->recordsCount++] = element;
-  return StatusOK;
+    if (arr->recordsCount == arr->capacity)
+    {
+        (arr->capacity == 0) ? (arr->capacity = 1) : (arr->capacity *= 2);
+        ParsedRecord* temp = realloc(arr->records, arr->capacity * sizeof(ParsedRecord));
+        if (temp == NULL)
+            return StatusCritical; /* do not forget to free the original pointer in the caller */
+        arr->records = temp;
+    }
+    arr->records[arr->recordsCount++] = element;
+    return StatusOK;
 }
 
 void freeArray(RecordsArray *arr)
 {
-  free(arr->records);
-  arr->records = NULL;
-  arr->recordsCount = arr->capacity = 0;
+    free(arr->records);
+    arr->records = NULL;
+    arr->recordsCount = arr->capacity = 0;
 }
 
 EventLogRecordHeader initEventLogRecordHeader()
