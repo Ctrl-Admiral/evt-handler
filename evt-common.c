@@ -4,7 +4,7 @@ Status initArray(RecordsArray *arr, size_t initialCapacity)
 {
     arr->records = malloc(initialCapacity * sizeof(ParsedRecord));
     if (arr == NULL)
-        return StatusCritical;
+        return StatusError;
     arr->recordsCount = 0;
     arr->capacity = initialCapacity;
     return StatusOK;
@@ -22,7 +22,7 @@ Status insertArray(RecordsArray *arr, ParsedRecord element)
         (arr->capacity == 0) ? (arr->capacity = 1) : (arr->capacity *= 2);
         ParsedRecord* temp = realloc(arr->records, arr->capacity * sizeof(ParsedRecord));
         if (temp == NULL)
-            return StatusCritical; /* do not forget to free the original pointer in the caller */
+            return StatusError;
         arr->records = temp;
     }
     arr->records[arr->recordsCount++] = element;
@@ -39,25 +39,25 @@ void freeArray(RecordsArray *arr)
 EventLogRecordHeader initEventLogRecordHeader()
 {
     EventLogRecordHeader recordHeader;
-    recordHeader.length = -1;
-    recordHeader.signature = -1;
-    recordHeader.recordNumber = -1;
-    recordHeader.timeGenerated = -1;
-    recordHeader.timeWritten = -1;
-    recordHeader.eventID = -1;
-    recordHeader.eventType = -1;
-    recordHeader.numStrings = -1;
-    recordHeader.eventCategory = -1;
-    recordHeader.reservedFlags = -1;
-    recordHeader.closingRecordNumber = -1;
-    recordHeader.stringOffset = -1;
-    recordHeader.userSidLength = -1;
-    recordHeader.userSidOffset = -1;
-    recordHeader.dataLength = -1;
-    recordHeader.dataOffset = -1;
+    recordHeader.length = UNDEF_DWORD;
+    recordHeader.signature = UNDEF_DWORD;
+    recordHeader.recordNumber = UNDEF_DWORD;
+    recordHeader.timeGenerated = UNDEF_DWORD;
+    recordHeader.timeWritten = UNDEF_DWORD;
+    recordHeader.eventID = UNDEF_DWORD;
+    recordHeader.eventType = UNDEF_WORD;
+    recordHeader.numStrings = UNDEF_WORD;
+    recordHeader.eventCategory = UNDEF_WORD;
+    recordHeader.reservedFlags = UNDEF_WORD;
+    recordHeader.closingRecordNumber = UNDEF_DWORD;
+    recordHeader.stringOffset = UNDEF_DWORD;
+    recordHeader.userSidLength = UNDEF_DWORD;
+    recordHeader.userSidOffset = UNDEF_DWORD;
+    recordHeader.dataLength = UNDEF_DWORD;
+    recordHeader.dataOffset = UNDEF_DWORD;
 
-    recordHeader.recoveredLength = -1;
-    recordHeader.recoveredDataLength = -1;
+    recordHeader.recoveredLength = UNDEF_DWORD;
+    recordHeader.recoveredDataLength = UNDEF_DWORD;
     return recordHeader;
 }
 
@@ -76,44 +76,44 @@ ParsedRecord initParsedRecord()
 ParsedHeader initParsedHeader()
 {
     ParsedHeader header;
-    header.headerSize = -1;
-    header.majorVersion = -1;
-    header.minorVersion = -1;
-    header.startOffset = -1;
-    header.endOffset = -1;
-    header.currentRecordNumber = -1;
-    header.oldestRecordNumber = -1;
-    header.fileSize = -1;
-    header.flags = -1;
-    header.retention = -1;
-    header.endHeaderSize = -1;
+    header.headerSize = UNDEF_DWORD;
+    header.majorVersion = UNDEF_DWORD;
+    header.minorVersion = UNDEF_DWORD;
+    header.startOffset = UNDEF_DWORD;
+    header.endOffset = UNDEF_DWORD;
+    header.currentRecordNumber = UNDEF_DWORD;
+    header.oldestRecordNumber = UNDEF_DWORD;
+    header.fileSize = UNDEF_DWORD;
+    header.flags = UNDEF_DWORD;
+    header.retention = UNDEF_DWORD;
+    header.endHeaderSize = UNDEF_DWORD;
 
-    header.recoveredCurrentRecordNumber = -1;
-    header.recoveredOldestRecordNumber = -1;
-    header.recoveredFileSize = -1;
+    header.recoveredCurrentRecordNumber = UNDEF_DWORD;
+    header.recoveredOldestRecordNumber = UNDEF_DWORD;
+    header.recoveredFileSize = UNDEF_DWORD;
     return header;
 }
 
 ParsedFooter initParsedFooter()
 {
     ParsedFooter footer;
-    footer.size = -1;
-    footer.one = -1;
-    footer.two = -1;
-    footer.three = -1;
-    footer.four = -1;
-    footer.beginRecord = -1;
-    footer.endRecord = -1;
-    footer.currentRecordNumber = -1;
-    footer.oldestRecordNumber = -1;
-    footer.recordSizeEnd = -1;
+    footer.size = UNDEF_DWORD;
+    footer.one = UNDEF_DWORD;
+    footer.two = UNDEF_DWORD;
+    footer.three = UNDEF_DWORD;
+    footer.four = UNDEF_DWORD;
+    footer.beginRecord = UNDEF_DWORD;
+    footer.endRecord = UNDEF_DWORD;
+    footer.currentRecordNumber = UNDEF_DWORD;
+    footer.oldestRecordNumber = UNDEF_DWORD;
+    footer.recordSizeEnd = UNDEF_DWORD;
     return footer;
 }
 
 void printNumericElement(const char* nameElem, const DWORD elem)
 {
     printf("%s", nameElem);
-    if(elem == -1) { printf("unknown"); }
+    if(elem == UNDEF_DWORD) { printf("unknown"); }
     else { printf("%d", elem); }
     printf("\n");
 }
@@ -123,20 +123,23 @@ void printNumericElementWithRecovering(const char* nameElem,
                                        const DWORD elemRecover)
 {
     printf("%s", nameElem);
-    if(elem == -1) { printf("unknown"); }
+    if(elem == UNDEF_DWORD) { printf("unknown"); }
     else { printf("%d", elem); }
-    if (elemRecover == -1) { printf("\n"); }
+    if (elemRecover == UNDEF_DWORD) { printf("\n"); }
     else { printf(" (%d)\n", elemRecover); }
 }
 
 void printTimeElement(const char* nameElem, const DWORD elem)
 {
     time_t timer = elem;
-    char buff[30];
+    char* buff;
+    buff = malloc(sizeof("hh:mm:ss UTC dd.MM.yyyy"));
     struct tm* tm_info = localtime(&timer);
     printf("%s", nameElem);
-    if(!strftime(buff, 30, "%T %Z %d.%m.%Y", tm_info) || elem == -1) { printf("unknown"); }
+    if(!strftime(buff, sizeof("hh:mm:ss UTC dd.MM.yyyy"), "%T %Z %d.%m.%Y", tm_info) ||
+        elem == UNDEF_DWORD) { printf("unknown"); }
     else { printf("%s\n", buff); }
+    free(buff);
 }
 
 void printParsedRecord(const ParsedRecord* record)

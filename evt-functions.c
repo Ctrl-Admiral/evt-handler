@@ -212,7 +212,7 @@ bool checkHasHeader(CBYTE* buffer)
 bool checkHasFooter(CBYTE* buffer, size_t bufferSize, BYTE** startFooter)
 {
     *startFooter = (BYTE*)searchSignature(buffer, bufferSize, SIGNATURE_FOOTER_START, sizeof(SIGNATURE_FOOTER_START));
-    if (startFooter != NULL)
+    if (*startFooter != NULL)
         return (searchSignature(*startFooter, bufferSize - (*startFooter - buffer), SIGNATURE_FOOTER_END, sizeof(SIGNATURE_FOOTER_END)) != NULL);
     return false;
 }
@@ -259,7 +259,7 @@ start:
 #ifndef NDEBUG
         printf("End of searching hidden records.\n");
 #endif
-        return StatusError;
+        return StatusStop;
     }
 
     begin = curSign - 4;
@@ -337,8 +337,8 @@ checkHasOwnData:
 /* =====================CARVING RECORD======================*/
 /* =========================================================*/
 Status carveRecord(CBYTE* startRecords, CBYTE* endRecords,
-                  BYTE** curStart, BYTE** record,
-                  size_t* recordSize, bool* isWrap)
+                   CBYTE** curStart, BYTE** record,
+                   size_t* recordSize, bool* isWrap)
 {
     BYTE* curSignature = NULL;
     BYTE* begin = NULL;
@@ -351,7 +351,7 @@ start:
     if (curSignature == NULL)
     {
         printf("Carving record: Signature not found. Search is over.\n");
-        return StatusError;
+        return StatusStop;
     }
 
     begin = (curSignature - SIGNATURE_RECORD_SIZE);
@@ -414,7 +414,7 @@ Status parseJournal(CBYTE* startEventLog, size_t eventLogSize,
     CBYTE* startRecords = NULL;
     CBYTE* endRecords = NULL;
     CBYTE* startFooter = NULL;
-    BYTE* curStart = NULL;
+    CBYTE* curStart = NULL;
     BYTE* curRecord = NULL;
     size_t curRecordSize = 0;
     bool isWrap = false;

@@ -9,11 +9,13 @@
 #include <string.h>
 #include <time.h>
 
-#define BYTE int8_t
-#define CBYTE const int8_t
-#define WORD int16_t
-#define DWORD int32_t
+#define BYTE uint8_t
+#define CBYTE const uint8_t
+#define WORD uint16_t
+#define DWORD uint32_t
 #define WCHAR wchar_t
+#define UNDEF_DWORD 0xFFFFFFFF
+#define UNDEF_WORD 0xFFFF
 
 
 extern CBYTE SIGNATURE_RECORD[];
@@ -30,18 +32,19 @@ extern const size_t FOOTER_SIZE;
 
 extern const size_t PADDING_SIZE;
 
-
+/**
+ * @brief Возвращаемые функциями статусы.
+ */
 typedef enum
 {
-    StatusOK = 0,
-    StatusError = 1,
-    StatusCritical = 2,
-    StatusStop = 3,
+    StatusOK = 0,       /* статус успеха */
+    StatusError = 1,    /* статус ошибки */
+    StatusStop = 2,     /* статус корректного выхода из алгоритма до его завершения */
 } Status;
 
 
 /**
- * @brief структура /logRecord.
+ * @brief структура заголовка события.
  */
 typedef struct
 {
@@ -67,7 +70,7 @@ typedef struct
 } EventLogRecordHeader;
 
 /**
- * @brief Структура записи события
+ * @brief Структура записи события.
  */
 typedef struct
 {
@@ -81,11 +84,19 @@ typedef struct
     bool isHidden;
 } ParsedRecord;
 
+/**
+ * @brief Инициализация элемента с типом ParsedFooter:
+ *  заполнение всех элементов значениями -1 или NULL в зависимости от типа.
+ */
 ParsedRecord initParsedRecord();
+
+/**
+ * @brief Печать в поток вывода сущность типа parsedRecord с учетом типов и наличия элементов.
+ */
 void printParsedRecord(const ParsedRecord* record);
 
 /**
- * @brief Структура заголовка журнала. Содержит только элементы с данными
+ * @brief Структура заголовка журнала.
  */
 typedef struct
 {
@@ -107,10 +118,14 @@ typedef struct
     DWORD recoveredFileSize;
 } ParsedHeader;
 
+/**
+ * @brief Инициализация элемента с типом ParsedFooter:
+ *  заполнение всех элементов значениями -1 или NULL в зависимости от типа.
+ */
 ParsedHeader initParsedHeader();
 
 /**
- * @brief терминальная структура журнала. Содержит только элементы с данными
+ * @brief Терминальная структура журнала.
  */
 typedef struct
 {
@@ -127,10 +142,17 @@ typedef struct
 
     DWORD recoveredCurrentRecordNumber;
     DWORD recoveredOldestRecordNumber;
-} ParsedFooter, *PParsedFooter;
+} ParsedFooter;
 
+/**
+ * @brief Инициализация элемента с типом ParsedFooter:
+ *  заполнение всех элементов значениями -1 или NULL в зависимости от типа.
+ */
 ParsedFooter initParsedFooter();
 
+/**
+ * @brief Структура динамического массива, содержащего записи событий.
+ */
 typedef struct
 {
   ParsedRecord* records;
@@ -138,6 +160,12 @@ typedef struct
   size_t capacity;
 } RecordsArray;
 
+/**
+ * @brief initArray
+ * @param arr
+ * @param initialCapacity
+ * @return
+ */
 Status initArray(RecordsArray *arr, size_t initialCapacity);
 
 Status initEmptyArray(RecordsArray *arr);
@@ -146,6 +174,9 @@ Status insertArray(RecordsArray *arr, ParsedRecord element);
 
 void freeArray(RecordsArray *arr);
 
+/**
+ * @brief Структура журнала событий.
+ */
 typedef struct
 {
     bool hasHeader;
@@ -155,8 +186,16 @@ typedef struct
     ParsedFooter footer;
 } EventLog;
 
+/**
+ * @brief Печать в поток вывода информации о записях в журнале событий.
+ * @param[in] eventLog журнал событий, содержащий записи
+ */
 void printEventLogRecords(const EventLog* eventLog);
 
+/**
+ * @brief Печать в поток вывода информаци из заголовка и треминальной структуры журнала событий.
+ * @param[in] eventLog журнал событий, содержащий заголовок и терминальную структуру
+ */
 void printHeaderFooter(const EventLog* eventLog);
 
 #endif /* EVT_COMMON_H */

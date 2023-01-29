@@ -26,6 +26,11 @@ int main(int argc, char **argv)
     int numArgc = 3;
     bool baseMode = false;
 
+    printf("size of DWORD_UNDEF: %zu\n", sizeof(UNDEF_DWORD));
+    printf("size of DWORD: %zu\n", sizeof(DWORD));
+    printf("size of WORD_UNDEF: %zu\n", sizeof(UNDEF_WORD));
+    printf("size of WORD: %zu\n", sizeof(WORD));
+
     if (argc > numArgc)
     {
         printf("Please specify filename and correct mode of output.\n");
@@ -61,6 +66,11 @@ int main(int argc, char **argv)
     fileSize = ftell(file);
     rewind(file);
     startFile = (BYTE *)malloc(fileSize * sizeof(BYTE));
+    if(startFile == NULL)
+    {
+        fprintf(stderr, "Failure malloc for file!\n");
+        goto out0;
+    }
 
     if (!fread(startFile, fileSize, 1, file))
     {
@@ -86,13 +96,16 @@ int main(int argc, char **argv)
     eventLog.footer = initParsedFooter();
     status = initEmptyArray(&eventLog.recordsArray);
     if (status != StatusOK)
-        goto out0;
+    {
+        fprintf(stderr, "Fail initial event log structure\n");
+        goto out1;
+    }
 
     status = parseJournal(startFile, fileSize, hasHeader, hasFooter, isFileWrapped, &eventLog);
     if (status != StatusOK)
     {
         fprintf(stderr, "Fail parsing journal\n");
-        goto out1;
+        goto out2;
     }
 
 #ifndef NDEBUG
@@ -101,10 +114,13 @@ int main(int argc, char **argv)
 
     printf("=== BASE INFO ===\n");
     printf("Number of records:\t%zu\n", eventLog.recordsArray.recordsCount);
+    printf("Has header:\t\t%s\n", eventLog.hasHeader == true ? "Yes" : "No");
+    printf("Has footer:\t\t%s\n", eventLog.hasFooter == true ? "Yes" : "No");
     printf("----------------------------------------------------------\n");
     printf("Parameter\t\theader info (footer info)\n"
            "----------------------------------------------------------\n");
     printHeaderFooter(&eventLog);
+
 
     if(!baseMode)
     {
@@ -114,9 +130,10 @@ int main(int argc, char **argv)
         printEventLogRecords(&eventLog);
     }
 
+out2:
+    freeArray(&eventLog.recordsArray);
 out1:
     free(startFile);
-    freeArray(&eventLog.recordsArray);
 out0:
     return status;
 }
